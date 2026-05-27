@@ -99,8 +99,8 @@
 .event-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px;
+  gap: 12px;
+  padding: 12px 14px;
   background: white;
   border: 1px solid #e5e7eb;
   border-radius: 10px;
@@ -114,37 +114,44 @@
 }
 
 .event-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
+/* Prominent time badge — centered vertically in the row */
+.event-time-badge {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+  white-space: nowrap;
+  flex-shrink: 1;
+  min-width: 78px;
+  text-align: center;
+  line-height: 1.2;
+  transform: translateY(-75%);
+}
+
 .event-content {
   flex: 1;
   min-width: 0;
+  height: 100%;
 }
 
 .event-type-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 2px;
+  margin-bottom: 3px;
 }
 
 .event-type {
   font-weight: 600;
   font-size: 0.8125rem;
   text-transform: capitalize;
-}
-
-.event-time {
-  font-size: 0.8125rem;
-  color: #6b7280;
-  font-weight: 500;
 }
 
 .event-details {
