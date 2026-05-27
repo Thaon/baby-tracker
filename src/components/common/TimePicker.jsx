@@ -1,53 +1,84 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import './TimePicker.css';
 
-const OUTER_RADIUS = 120;
-const INNER_RADIUS = 82;
-const CLOCK_SIZE = OUTER_RADIUS * 2 + 40;
+const OUTER_RADIUS = 110;
+const INNER_RADIUS = 70;
+const CLOCK_SIZE = 260;
 const CENTER = CLOCK_SIZE / 2;
 
-const HOURS = Array.from({ length: 12 }, (_, i) => i + 1); // 1-12
-const MINUTES = Array.from({ length: 12 }, (_, i) => i * 5); // 0,5,10,...55
+const HOURS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+const MINUTES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
 
 function getAngle(x, y) {
-  // 12 o'clock is 0, clockwise positive
   const angle = Math.atan2(x, -y) * (180 / Math.PI);
   return angle < 0 ? angle + 360 : angle;
 }
 
 function getClosestValue(angle, values) {
   const step = 360 / values.length;
-  // Normalize angle to closest step
   const index = Math.round(angle / step) % values.length;
-  return values[index];
+  return values[index] !== undefined ? values[index] : values[0];
+}
+
+function parseTimeValue(val) {
+  if (!val) {
+    const now = new Date();
+    const h = now.getHours();
+    return {
+      hours: h % 12 || 12,
+      minutes: Math.round(now.getMinutes() / 5) * 5,
+      isAM: h < 12
+    };
+  }
+  const [h, m] = val.split(':').map(Number);
+  return {
+    hours: h % 12 || 12,
+    minutes: Math.round(m / 5) * 5,
+    isAM: h < 12
+  };
+}
+
+function formatTimeDisplay(val) {
+  if (!val) return '';
+  const { hours, minutes, isAM } = parseTimeValue(val);
+  const h12 = hours || 12;
+  const mStr = String(minutes).padStart(2, '0');
+  return `${h12}:${mStr} ${isAM ? 'AM' : 'PM'}`;
+}
+
+function toTimeString(hours, minutes, isAM) {
+  const h24 = isAM
+    ? (hours === 12 ? 0 : hours)
+    : (hours === 12 ? 12 : hours + 12);
+  return `${String(h24).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 }
 
 export default function TimePicker({ value, onChange, label }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [mode, setMode] = useState('hours'); // 'hours' | 'minutes'
+  const [mode, setMode] = useState('hours');
   const [isAM, setIsAM] = useState(true);
+  const [selectedHours, setSelectedHours] = useState(12);
+  const [selectedMinutes, setSelectedMinutes] = useState(0);
   const [dragging, setDragging] = useState(false);
+
+  // Refs for latest values (avoid stale closures in pointer handlers)
+  const modeRef = useRef('hours');
+  const hoursRef = useRef(12);
+  const minutesRef = useRef(0);
+  const amRef = useRef(true);
+  const draggingRef = useRef(false);
   const clockRef = useRef(null);
 
-  // Parse value ("HH:mm" string) into hours/minutes
-  const parseValue = (val) => {
-    if (!val) {
-      const now = new Date();
-      const h = now.getHours();
-      return { hours: h % 12 || 12, minutes: now.getMinutes(), isAM: h < 12 };
-    }
-    const [h, m] = val.split(':').map(Number);
-    return { hours: h % 12 || 12, minutes: m, isAM: h < 12 };
-  };
+  // Sync refs
+  modeRef.current = mode;
+  hoursRef.current = selectedHours;
+  minutesRef.current = selectedMinutes;
+  amRef.current = isAM;
 
-  const currentValue = parseValue(value);
-
-  const [selectedHours, setSelectedHours] = useState(currentValue.hours);
-  const [selectedMinutes, setSelectedMinutes] = useState(currentValue.minutes);
-
+  // Init state when opening
   useEffect(() => {
     if (isOpen) {
-      const parsed = parseValue(value);
+      const parsed = parseTimeValue(value);
       setSelectedHours(parsed.hours);
       setSelectedMinutes(parsed.minutes);
       setIsAM(parsed.isAM);
@@ -55,179 +86,184 @@ export default function TimePicker({ value, onChange, label }) {
     }
   }, [isOpen]);
 
-  const formatDisplay = (val) => {
-    if (!val) return '';
-    const { hours, minutes, isAM: am } = parseValue(val);
-    const h12 = hours || 12;
-    const mStr = String(minutes).padStart(2, '0');
-    const ampm = am ? 'AM' : 'PM';
-    return `${h12}:${mStr} ${ampm}`;
+  const handleSetHours = (h) => {
+    setSelectedHours(h);
+    setMode('minutes');
   };
 
-  const commitValue = useCallback((h, m, am) => {
-    const h24 = am ? (h === 12 ? 0 : h) : (h === 12 ? 12 : h + 12);
-    const timeStr = `${String(h24).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  const handleSetMinutes = (m) => {
+    setSelectedMinutes(m);
+  };
+
+  const handleCommit = useCallback(() => {
+    const timeStr = toTimeString(hoursRef.current, minutesRef.current, amRef.current);
     onChange(timeStr);
   }, [onChange]);
 
-  const updateFromPointer = useCallback((e) => {
+  // --- Pointer logic ---
+
+  const updateSelection = useCallback((clientX, clientY) => {
     if (!clockRef.current) return;
     const rect = clockRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left - rect.width / 2;
-    const y = e.clientY - rect.top - rect.height / 2;
+    const x = clientX - rect.left - rect.width / 2;
+    const y = clientY - rect.top - rect.height / 2;
     const dist = Math.sqrt(x * x + y * y);
 
-    // Only respond if pointer is within or near the clock face
-    if (dist > OUTER_RADIUS + 30) return;
+    // Require pointer inside the clock area (with some tolerance)
+    if (dist < 5 || dist > OUTER_RADIUS + 25) return;
 
     const angle = getAngle(x, y);
+    const currentMode = modeRef.current;
 
-    if (mode === 'hours') {
+    if (currentMode === 'hours') {
       const hour = getClosestValue(angle, HOURS);
+      hoursRef.current = hour;
       setSelectedHours(hour);
     } else {
       const minute = getClosestValue(angle, MINUTES);
+      minutesRef.current = minute;
       setSelectedMinutes(minute);
     }
-  }, [mode]);
+  }, []);
 
   const handlePointerDown = useCallback((e) => {
     e.preventDefault();
+    e.stopPropagation();
+    draggingRef.current = true;
     setDragging(true);
-    updateFromPointer(e);
-  }, [updateFromPointer]);
+    updateSelection(e.clientX, e.clientY);
+    // Capture pointer so we get events even outside the element
+    clockRef.current?.setPointerCapture?.(e.pointerId);
+  }, [updateSelection]);
 
   const handlePointerMove = useCallback((e) => {
-    if (!dragging) return;
-    updateFromPointer(e);
-  }, [dragging, updateFromPointer]);
+    if (!draggingRef.current) return;
+    updateSelection(e.clientX, e.clientY);
+  }, [updateSelection]);
 
-  const handlePointerUp = useCallback(() => {
-    if (!dragging) return;
+  const handlePointerUp = useCallback((e) => {
+    if (!draggingRef.current) return;
+    draggingRef.current = false;
     setDragging(false);
-    if (mode === 'hours') {
-      // Auto-advance to minutes after hour selection
+
+    const currentMode = modeRef.current;
+    if (currentMode === 'hours') {
+      // Advance to minutes phase
       setMode('minutes');
-    } else {
-      commitValue(selectedHours, selectedMinutes, isAM);
-      setIsOpen(false);
     }
-  }, [dragging, mode, selectedHours, selectedMinutes, isAM, commitValue]);
+    // In minutes mode, don't auto-commit — user presses OK
+  }, []);
+
+  // Attach global listeners via refs to avoid re-registration churn
+  const pointerMoveRef = useRef(handlePointerMove);
+  const pointerUpRef = useRef(handlePointerUp);
+  pointerMoveRef.current = handlePointerMove;
+  pointerUpRef.current = handlePointerUp;
 
   useEffect(() => {
-    if (!dragging) return;
-    window.addEventListener('pointermove', handlePointerMove);
-    window.addEventListener('pointerup', handlePointerUp);
+    const onMove = (e) => pointerMoveRef.current?.(e);
+    const onUp = (e) => pointerUpRef.current?.(e);
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
     return () => {
-      window.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
     };
-  }, [dragging, handlePointerMove, handlePointerUp]);
+  }, []);
 
-  const handleSwitchMode = (newMode) => {
+  // --- Render helpers ---
+
+  const handleDigitClick = (newMode) => {
     setMode(newMode);
   };
 
-  const handleAMPM = (am) => {
+  const handleAMPMToggle = (am) => {
     setIsAM(am);
-    commitValue(selectedHours, selectedMinutes, am);
+    amRef.current = am;
   };
 
-  const getHandAngle = () => {
-    if (mode === 'hours') {
-      // 12 o'clock = 0°, each hour = 30°
-      return (selectedHours % 12) * 30;
-    } else {
-      // 0 min = 0°, each minute = 6°
-      return selectedMinutes * 6;
-    }
-  };
+  const handAngle = mode === 'hours'
+    ? (selectedHours % 12) * 30
+    : selectedMinutes * 6;
 
-  const getHandLength = () => {
-    // Shorter hand for hours (inner ring), longer for minutes (outer ring)
-    return mode === 'hours' ? INNER_RADIUS : OUTER_RADIUS - 10;
-  };
+  const handLength = mode === 'hours' ? INNER_RADIUS - 8 : OUTER_RADIUS - 14;
 
-  const renderClockNumbers = () => {
-    if (mode === 'hours') {
-      return HOURS.map((hour) => {
-        const angle = (hour * 30 - 90) * (Math.PI / 180);
-        const radius = INNER_RADIUS;
-        const x = CENTER + radius * Math.cos(angle);
-        const y = CENTER + radius * Math.sin(angle);
-        const isSelected = selectedHours === hour;
-        return (
-          <span
-            key={hour}
-            className={`clock-number ${isSelected ? 'selected' : ''}`}
-            style={{ left: x, top: y }}
-          >
-            {hour}
-          </span>
-        );
-      });
-    } else {
-      return MINUTES.map((minute) => {
-        const angle = (minute * 6 - 90) * (Math.PI / 180);
-        const radius = OUTER_RADIUS - 10;
-        const x = CENTER + radius * Math.cos(angle);
-        const y = CENTER + radius * Math.sin(angle);
-        const isSelected = selectedMinutes === minute;
-        const display = String(minute).padStart(2, '0');
-        return (
-          <span
-            key={minute}
-            className={`clock-number ${isSelected ? 'selected' : ''}`}
-            style={{ left: x, top: y }}
-          >
-            {display}
-          </span>
-        );
-      });
-    }
-  };
+  const renderNumbers = () => {
+    const items = mode === 'hours' ? HOURS : MINUTES;
+    const isHourMode = mode === 'hours';
+    const currentSelected = isHourMode ? selectedHours : selectedMinutes;
 
-  const handAngle = getHandAngle();
-  const handLength = getHandLength();
+    return items.map((val) => {
+      const degPerItem = 360 / items.length;
+      // First item is at the top (12 o'clock), so offset by -90°
+      const idx = isHourMode ? (val % 12) : (val / 5);
+      const angleRad = (idx * degPerItem - 90) * (Math.PI / 180);
+      const radius = isHourMode ? INNER_RADIUS : OUTER_RADIUS;
+      const x = CENTER + radius * Math.cos(angleRad);
+      const y = CENTER + radius * Math.sin(angleRad);
+      const isSelected = currentSelected === val;
+      const display = isHourMode ? String(val) : String(val).padStart(2, '0');
+
+      return (
+        <span
+          key={val}
+          className={`clock-number ${isSelected ? 'selected' : ''}`}
+          style={{ left: x, top: y }}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (isHourMode) {
+              handleSetHours(val);
+            } else {
+              handleSetMinutes(val);
+            }
+          }}
+        >
+          {display}
+        </span>
+      );
+    });
+  };
 
   return (
     <div className="time-picker-container">
       {label && <label className="time-picker-label">{label}</label>}
       <div
         className={`time-picker-input ${isOpen ? 'active' : ''}`}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => setIsOpen(true)}
       >
-        <span className="time-display">{value ? formatDisplay(value) : '--:-- --'}</span>
+        <span className="time-display">
+          {value ? formatTimeDisplay(value) : '--:-- --'}
+        </span>
       </div>
 
       {isOpen && (
         <div className="time-picker-overlay" onClick={() => setIsOpen(false)}>
           <div className="time-picker-modal" onClick={(e) => e.stopPropagation()}>
-            {/* Time display header */}
+            {/* Header */}
             <div className="time-modal-header">
               <button
                 className={`time-digit ${mode === 'hours' ? 'active' : ''}`}
-                onClick={() => handleSwitchMode('hours')}
+                onClick={() => handleDigitClick('hours')}
               >
                 {String(selectedHours).padStart(2, '0')}
               </button>
               <span className="time-colon">:</span>
               <button
                 className={`time-digit ${mode === 'minutes' ? 'active' : ''}`}
-                onClick={() => handleSwitchMode('minutes')}
+                onClick={() => handleDigitClick('minutes')}
               >
                 {String(selectedMinutes).padStart(2, '0')}
               </button>
               <div className="ampm-toggle">
                 <button
                   className={`ampm-btn ${isAM ? 'active' : ''}`}
-                  onClick={() => handleAMPM(true)}
+                  onClick={() => handleAMPMToggle(true)}
                 >
                   AM
                 </button>
                 <button
                   className={`ampm-btn ${!isAM ? 'active' : ''}`}
-                  onClick={() => handleAMPM(false)}
+                  onClick={() => handleAMPMToggle(false)}
                 >
                   PM
                 </button>
@@ -242,7 +278,15 @@ export default function TimePicker({ value, onChange, label }) {
               style={{ touchAction: 'none' }}
             >
               <div className="clock-circle">
-                {renderClockNumbers()}
+                {/* Inner ring (hours) */}
+                <div className={`clock-ring inner-ring ${mode === 'hours' ? 'ring-active' : ''}`} />
+
+                {/* Outer ring (minutes) */}
+                <div className={`clock-ring outer-ring ${mode === 'minutes' ? 'ring-active' : ''}`} />
+
+                {/* Numbers */}
+                {renderNumbers()}
+
                 {/* Clock hand */}
                 <div
                   className="clock-hand"
@@ -254,12 +298,13 @@ export default function TimePicker({ value, onChange, label }) {
                   <div className="hand-line" />
                   <div className="hand-dot" />
                 </div>
+
                 {/* Center dot */}
                 <div className="clock-center" />
               </div>
             </div>
 
-            {/* Actions */}
+            {/* Footer */}
             <div className="time-modal-footer">
               <button className="time-cancel-btn" onClick={() => setIsOpen(false)}>
                 Cancel
@@ -267,7 +312,7 @@ export default function TimePicker({ value, onChange, label }) {
               <button
                 className="time-ok-btn"
                 onClick={() => {
-                  commitValue(selectedHours, selectedMinutes, isAM);
+                  handleCommit();
                   setIsOpen(false);
                 }}
               >
