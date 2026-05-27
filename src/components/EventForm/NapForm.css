@@ -1,0 +1,30 @@
+.nap-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.nap-hint {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.save-btn {
+  width: 100%;
+  padding: 12px;
+  background: #8b5cf6;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-top: 4px;
+}
+
+.save-btn:hover {
+  background: #7c3aed;
+}
