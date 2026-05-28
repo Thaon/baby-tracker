@@ -205,7 +205,7 @@ export default function DayTimeline({ selectedDate, onReward }) {
             </div>
             <div className="summary-right">
               <span className="summary-detail">
-                {daySummary.totalMilk}ml · {daySummary.avgMilk}ml avg
+                {daySummary.feedCount} · {daySummary.avgMilk}ml avg
               </span>
             </div>
           </div>
