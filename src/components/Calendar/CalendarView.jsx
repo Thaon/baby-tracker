@@ -3,21 +3,24 @@ import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { getEventsByDate, createEvent, deleteEvent } from '../../db/database';
 import { toast } from 'react-toastify';
 import EventForm from '../EventForm/EventForm';
+import { getDaySummary, formatDuration } from '../../utils/daySummary';
 import './CalendarView.css';
 
 const EVENT_TYPES = {
   FEED: 'feed',
   NAP: 'nap',
-  POTTY: 'potty'
+  POTTY: 'potty',
+  EXPRESSED: 'expressed'
 };
 
 const EVENT_COLORS = {
   feed: '#3b82f6',
   nap: '#8b5cf6',
-  potty: '#ef4444'
+  potty: '#ef4444',
+  expressed: '#10b981'
 };
 
-export default function CalendarView({ selectedDate, onSelectDate }) {
+export default function CalendarView({ selectedDate, onSelectDate, onReward }) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState({});
   const [showForm, setShowForm] = useState(false);
@@ -86,7 +89,6 @@ export default function CalendarView({ selectedDate, onSelectDate }) {
       });
     }
 
-    // Use 5 rows if possible, 6 if needed
     const targetCells = days.length <= 35 ? 35 : 42;
     const remainingDays = targetCells - days.length;
     for (let i = 1; i <= remainingDays; i++) {
@@ -109,6 +111,7 @@ export default function CalendarView({ selectedDate, onSelectDate }) {
   const handleEventSubmit = async (event) => {
     try {
       await createEvent(event);
+      onReward?.();
       toast.success(`${event.type.charAt(0).toUpperCase() + event.type.slice(1)} event saved`);
       setShowForm(false);
       await fetchMonthEvents();
@@ -120,8 +123,29 @@ export default function CalendarView({ selectedDate, onSelectDate }) {
     }
   };
 
-  const getEventCountByDate = (dateStr) => {
-    return events[dateStr]?.length || 0;
+  const renderDaySummary = (dateStr) => {
+    const dayEvents = events[dateStr];
+    if (!dayEvents || dayEvents.length === 0) return null;
+    const summary = getDaySummary(dayEvents);
+    const parts = [];
+
+    if (summary.feedCount > 0) {
+      const milkInfo = summary.totalMilk > 0 ? ` ${summary.totalMilk}ml` : '';
+      parts.push(<span key="feed" className="day-stat feed-stat">🍼 {summary.feedCount}{milkInfo}</span>);
+    }
+    if (summary.pottyCount > 0) {
+      const poopInfo = summary.poopCount > 0 ? ` · 💩${summary.poopCount}` : '';
+      parts.push(<span key="potty" className="day-stat potty-stat">🚽 {summary.pottyCount}{poopInfo}</span>);
+    }
+    if (summary.napCount > 0 && summary.napDuration > 0) {
+      parts.push(<span key="nap" className="day-stat nap-stat">😴 {formatDuration(summary.napDuration)}</span>);
+    }
+    if (summary.expressedCount > 0) {
+      const amtInfo = summary.totalExpressed > 0 ? ` ${summary.totalExpressed}ml` : '';
+      parts.push(<span key="expressed" className="day-stat expressed-stat">🤱 {summary.expressedCount}{amtInfo}</span>);
+    }
+
+    return parts.length > 0 ? <div className="day-stats">{parts}</div> : null;
   };
 
   if (loading) {
@@ -162,17 +186,7 @@ export default function CalendarView({ selectedDate, onSelectDate }) {
               onClick={() => calendarDay.dateStr && handleDayClick(calendarDay.dateStr)}
             >
               <span className="day-number">{calendarDay.day}</span>
-              {calendarDay.dateStr && getEventCountByDate(calendarDay.dateStr) > 0 && (
-                <div className="event-dots">
-                  {events[calendarDay.dateStr]?.slice(0, 3).map((event, idx) => (
-                    <div
-                      key={idx}
-                      className="event-dot"
-                      style={{ backgroundColor: EVENT_COLORS[event.type] }}
-                    />
-                  ))}
-                </div>
-              )}
+              {calendarDay.dateStr && renderDaySummary(calendarDay.dateStr)}
             </button>
           ))}
         </div>
@@ -189,6 +203,9 @@ export default function CalendarView({ selectedDate, onSelectDate }) {
           </button>
           <button className="quick-add-btn potty-btn" onClick={() => handleAddEvent(EVENT_TYPES.POTTY)}>
             <Plus size={18} /> Potty
+          </button>
+          <button className="quick-add-btn expressed-btn" onClick={() => handleAddEvent(EVENT_TYPES.EXPRESSED)}>
+            <Plus size={18} /> Expressed
           </button>
         </div>
       </div>

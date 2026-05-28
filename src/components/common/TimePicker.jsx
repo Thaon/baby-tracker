@@ -1,12 +1,12 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import './TimePicker.css';
 
-const OUTER_RADIUS = 110;
-const INNER_RADIUS = 70;
-const CLOCK_SIZE = 260;
+const OUTER_RADIUS = 125;
+const INNER_RADIUS = 95;
+const CLOCK_SIZE = 280;
 const CENTER = CLOCK_SIZE / 2;
 
-const HOURS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+const HOURS = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 const MINUTES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
 
 function getAngle(x, y) {

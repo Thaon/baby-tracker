@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { X, Utensils, Moon, Droplets } from 'lucide-react';
+import { X, Utensils, Moon, Droplets, Milk } from 'lucide-react';
 import FeedForm from './FeedForm';
 import NapForm from './NapForm';
 import PottyForm from './PottyForm';
+import MilkExpressedForm from './MilkExpressedForm';
 import DatePicker from '../common/DatePicker';
 import TimePicker from '../common/TimePicker';
 import './EventForm.css';
@@ -10,13 +11,15 @@ import './EventForm.css';
 const EVENT_ICONS = {
   feed: Utensils,
   nap: Moon,
-  potty: Droplets
+  potty: Droplets,
+  expressed: Milk
 };
 
 const EVENT_COLORS = {
   feed: '#3b82f6',
   nap: '#8b5cf6',
-  potty: '#ef4444'
+  potty: '#ef4444',
+  expressed: '#10b981'
 };
 
 export default function EventForm({ eventType, initialData, onSubmit, onCancel }) {
@@ -122,6 +125,14 @@ export default function EventForm({ eventType, initialData, onSubmit, onCancel }
             )}
             {eventType === 'potty' && (
               <PottyForm
+                initialData={initialData}
+                notes={notes}
+                onNotesChange={setNotes}
+                onSubmit={handleSubmit}
+              />
+            )}
+            {eventType === 'expressed' && (
+              <MilkExpressedForm
                 initialData={initialData}
                 notes={notes}
                 onNotesChange={setNotes}

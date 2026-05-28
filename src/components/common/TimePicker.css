@@ -50,7 +50,7 @@
 .time-picker-modal {
   background: white;
   border-radius: 16px;
-  width: 320px;
+  width: 340px;
   overflow: hidden;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
 }
@@ -128,8 +128,8 @@
 
 /* Clock circle wrapper */
 .clock-circle {
-  width: 260px;
-  height: 260px;
+  width: 280px;
+  height: 280px;
   border-radius: 50%;
   background: #f1f3f5;
   position: relative;
@@ -145,7 +145,7 @@
 }
 
 .clock-ring.inner-ring {
-  margin: 32px;
+  margin: 45px;
   background: rgba(59, 130, 246, 0.06);
   border: 1px solid rgba(59, 130, 246, 0.12);
 }
@@ -163,8 +163,8 @@
 /* Numbers */
 .clock-number {
   position: absolute;
-  width: 36px;
-  height: 36px;
+  width: 42px;
+  height: 42px;
   display: flex;
   align-items: center;
   justify-content: center;

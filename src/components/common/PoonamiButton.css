@@ -1,0 +1,67 @@
+.poonami-container {
+  position: fixed;
+  top: 4px;
+  right: 50%;
+  transform: translateX(50%);
+  z-index: 999;
+}
+
+.poonami-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 4px 24px;
+  background: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 50px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 24px rgba(220, 38, 38, 0.5);
+  transition: all 0.2s;
+  font-family: inherit;
+  letter-spacing: 0.05em;
+  transform: scale(1);
+}
+
+.poonami-btn:hover:not(:disabled) {
+  background: #b91c1c;
+  box-shadow: 0 8px 32px rgba(220, 38, 38, 0.6);
+  transform: scale(1.05);
+}
+
+.poonami-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.poonami-btn.triggered {
+  animation: poonami-shake 0.8s ease-out;
+  background: #ef4444;
+}
+
+.poonami-btn:disabled {
+  cursor: not-allowed;
+}
+
+@keyframes poonami-shake {
+  0% {
+    transform: scale(1) rotate(0);
+  }
+  20% {
+    transform: scale(1.1) rotate(-5deg);
+  }
+  40% {
+    transform: scale(1.1) rotate(5deg);
+  }
+  60% {
+    transform: scale(1.05) rotate(-3deg);
+  }
+  80% {
+    transform: scale(1.05) rotate(3deg);
+  }
+  100% {
+    transform: scale(1) rotate(0);
+  }
+}

@@ -55,6 +55,15 @@
   background: #ddd6fe;
 }
 
+.add-type-btn.expressed {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.add-type-btn.expressed:hover {
+  background: #a7f3d0;
+}
+
 .add-type-btn.potty {
   background: #fee2e2;
   color: #dc2626;
@@ -62,6 +71,101 @@
 
 .add-type-btn.potty:hover {
   background: #fecaca;
+}
+
+/* Day summary card */
+.day-summary-card {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-bottom: 10px;
+}
+
+.summary-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: 10px;
+  gap: 6px;
+}
+
+.summary-item.feed-summary {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+}
+
+.summary-item.potty-summary {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+}
+
+.summary-item.nap-summary {
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+}
+
+.summary-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.summary-icon {
+  font-size: 1.125rem;
+  line-height: 1;
+}
+
+.summary-label {
+  font-size: 0.5625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7280;
+}
+
+.summary-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+
+.summary-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.feed-summary .summary-value {
+  color: #1d4ed8;
+}
+
+.potty-summary .summary-value {
+  color: #dc2626;
+}
+
+.nap-summary .summary-value {
+  color: #6d28d9;
+}
+
+.expressed-summary .summary-value {
+  color: #059669;
+}
+
+.summary-item.expressed-summary {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+}
+
+.summary-detail {
+  font-size: 1.7rem;
+  font-weight: 800;
+  color: #6b7280;
+  line-height: 1.2;
+  text-align: right;
 }
 
 .loading,

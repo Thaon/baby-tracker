@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { getEventsByDate, createEvent, deleteEvent } from "../../db/database";
 import { toast } from "react-toastify";
 import {
@@ -9,23 +9,32 @@ import {
   Utensils,
   Moon,
   Droplets,
+  Milk,
 } from "lucide-react";
 import EventForm from "../EventForm/EventForm";
+import { getDaySummary, formatDuration } from "../../utils/daySummary";
 import "./DayTimeline.css";
 
 const EVENT_COLORS = {
   feed: "#3b82f6",
   nap: "#8b5cf6",
   potty: "#ef4444",
+  expressed: "#10b981",
 };
 
 const EVENT_ICONS = {
   feed: Utensils,
   nap: Moon,
   potty: Droplets,
+  expressed: Milk,
 };
 
-const EVENT_TYPES = { FEED: "feed", NAP: "nap", POTTY: "potty" };
+const EVENT_TYPES = {
+  FEED: "feed",
+  NAP: "nap",
+  POTTY: "potty",
+  EXPRESSED: "expressed",
+};
 
 function formatTime12(time24) {
   if (!time24) return "";
@@ -35,7 +44,7 @@ function formatTime12(time24) {
   return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
 }
 
-export default function DayTimeline({ selectedDate }) {
+export default function DayTimeline({ selectedDate, onReward }) {
   const [events, setEvents] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [formType, setFormType] = useState(null);
@@ -60,6 +69,8 @@ export default function DayTimeline({ selectedDate }) {
       setLoading(false);
     }
   };
+
+  const daySummary = useMemo(() => getDaySummary(events), [events]);
 
   const handleAddEvent = (type) => {
     setFormType(type);
@@ -91,6 +102,7 @@ export default function DayTimeline({ selectedDate }) {
   const handleEventSubmit = async (event) => {
     try {
       await createEvent(event);
+      onReward?.();
       toast.success(
         `${event.type.charAt(0).toUpperCase() + event.type.slice(1)} event saved`,
       );
@@ -127,6 +139,8 @@ export default function DayTimeline({ selectedDate }) {
       if (event.isPee) parts.push("Pee");
       if (event.isPoop) parts.push("Poop");
       return parts.join(" + ") || "Potty";
+    } else if (event.type === "expressed") {
+      return event.amount ? `${event.amount}ml expressed` : "Expressed";
     }
     return "";
   };
@@ -143,6 +157,12 @@ export default function DayTimeline({ selectedDate }) {
     });
     return isToday ? `Today — ${formatted}` : formatted;
   };
+
+  const hasSummary =
+    daySummary.feedCount > 0 ||
+    daySummary.pottyCount > 0 ||
+    daySummary.napCount > 0 ||
+    daySummary.expressedCount > 0;
 
   return (
     <div className="day-timeline">
@@ -167,8 +187,74 @@ export default function DayTimeline({ selectedDate }) {
           >
             <Plus size={16} /> Potty
           </button>
+          <button
+            className="add-type-btn expressed"
+            onClick={() => handleAddEvent(EVENT_TYPES.EXPRESSED)}
+          >
+            <Plus size={16} /> Expressed
+          </button>
         </div>
       </div>
+
+      {hasSummary && (
+        <div className="day-summary-card">
+          <div className="summary-item feed-summary">
+            <div className="summary-left">
+              <span className="summary-icon">🍼</span>
+              <span className="summary-label">Feeds</span>
+            </div>
+            <div className="summary-right">
+              <span className="summary-detail">
+                {daySummary.totalMilk}ml · {daySummary.avgMilk}ml avg
+              </span>
+            </div>
+          </div>
+
+          <div className="summary-item nap-summary">
+            <div className="summary-left">
+              <span className="summary-icon">😴</span>
+              <span className="summary-label">Naps</span>
+            </div>
+            <div className="summary-right">
+              <span className="summary-detail">
+                {daySummary.napCount > 0
+                  ? formatDuration(daySummary.napDuration)
+                  : "No naps"}
+              </span>
+            </div>
+          </div>
+
+          <div className="summary-item potty-summary">
+            <div className="summary-left">
+              <span className="summary-icon">🚽</span>
+              <span className="summary-label">Potty</span>
+            </div>
+            <div className="summary-right">
+              <span className="summary-detail">
+                {daySummary.peeCount > 0
+                  ? `${daySummary.peeCount} pee${daySummary.peeCount > 1 ? "s" : ""}`
+                  : "No pees"}
+                {" · "}
+                {daySummary.poopCount > 0
+                  ? `${daySummary.poopCount} poop${daySummary.poopCount > 1 ? "s" : ""}`
+                  : "No poops"}
+              </span>
+            </div>
+          </div>
+
+          <div className="summary-item expressed-summary">
+            <div className="summary-left">
+              <span className="summary-icon">🤱</span>
+              <span className="summary-label">Expressed</span>
+            </div>
+            <div className="summary-right">
+              <span className="summary-detail">
+                {daySummary.expressedCount} · {daySummary.totalExpressed}ml
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="loading">Loading...</div>
