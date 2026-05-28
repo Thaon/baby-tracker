@@ -1,4 +1,19 @@
 /**
+ * Convert any date input to a "YYYY-MM-DD" string.
+ * Handles Date objects, existing "YYYY-MM-DD" strings (returned as-is),
+ * Date-only strings like "1/15/2025", and ISO strings.
+ */
+export function toDateString(input) {
+  if (!input) return "";
+  if (typeof input === "string" && /^\d{4}-\d{2}-\d{2}$/.test(input)) {
+    return input; // already correct format
+  }
+  const d = new Date(input);
+  if (isNaN(d.getTime())) return "";
+  return d.toISOString().split("T")[0];
+}
+
+/**
  * Compute a summary of events for a given day.
  * Returns { feedCount, totalMilk, avgMilk, pottyCount, poopCount, napCount, napDuration, expressedCount, totalExpressed }
  */
@@ -18,7 +33,6 @@ export function getDaySummary(dayEvents) {
     (feed.foodItems || []).some(item => item.type === 'milk')
   );
   const avgMilk = feedsWithMilk.length > 0 ? Math.round(totalMilk / feedsWithMilk.length) : 0;
-
   // Potty counts
   const pottyCount = potties.length;
   const peeCount = potties.filter(e => e.isPee).length;

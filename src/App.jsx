@@ -2,11 +2,12 @@ import { useState, useCallback } from "react";
 import { useReward } from "react-rewards";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import Dashboard from "./components/Dashboard/Dashboard";
 import CalendarView from "./components/Calendar/CalendarView";
 import DayTimeline from "./components/DayTimeline/DayTimeline";
 import { exportEvents, createEvent } from "./db/database";
 import PoonamiButton from "./components/common/PoonamiButton";
-import { Download, Calendar, List, Baby } from "lucide-react";
+import { Download, Calendar, List, Baby, LayoutDashboard } from "lucide-react";
 import "./App.css";
 
 function App() {
@@ -22,7 +23,7 @@ function App() {
     },
   );
 
-  const [currentView, setCurrentView] = useState("calendar");
+  const [currentView, setCurrentView] = useState("dashboard");
   const [selectedDate, setSelectedDate] = useState(() => {
     const today = new Date();
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
@@ -107,6 +108,13 @@ function App() {
 
       <nav className="view-tabs">
         <button
+          className={`tab ${currentView === "dashboard" ? "active" : ""}`}
+          onClick={() => setCurrentView("dashboard")}
+        >
+          <LayoutDashboard size={16} />
+          Dashboard
+        </button>
+        <button
           className={`tab ${currentView === "calendar" ? "active" : ""}`}
           onClick={() => setCurrentView("calendar")}
         >
@@ -118,11 +126,17 @@ function App() {
           onClick={() => setCurrentView("timeline")}
         >
           <List size={16} />
-          Timeline
+          Day
         </button>
       </nav>
 
       <main className="app-main">
+        {currentView === "dashboard" && (
+          <Dashboard
+            onReward={handleEventSaved}
+            onSelectDate={handleSelectDate}
+          />
+        )}
         {currentView === "calendar" && (
           <CalendarView
             selectedDate={selectedDate}
